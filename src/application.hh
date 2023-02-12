@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vk_mem_alloc.h"
+#include "vk_mem_alloc.hh"
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -8,6 +8,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+
+#include "utils.hh"
 
 class GlfwContext {
 public:
@@ -39,8 +41,12 @@ public:
         return instance;
     }
 
+    const VkInstance& getHandle() const {
+        return _handle;
+    }
+
 private:
-    VkInstance _instance;
+    VkInstance _handle;
     const std::vector<const char*> _validationLayers = {"VK_LAYER_KHRONOS_validation"};
 
 #ifdef NDEBUG
@@ -64,9 +70,9 @@ private:
     VulkanContext();
     ~VulkanContext() {
         if (enableValidationLayers) {
-            DestroyDebugUtilsMessengerEXT(_instance, _debugMessenger, nullptr);
+            DestroyDebugUtilsMessengerEXT(_handle, _debugMessenger, nullptr);
         }
-        vkDestroyInstance(_instance, nullptr);
+        vkDestroyInstance(_handle, nullptr);
         std::cerr << "Destroyed Vulkan instance.\n";
     }
 
@@ -77,7 +83,7 @@ public:
 
 class Window {
 private:
-    GLFWwindow* _pwindow = nullptr;
+    GLFWwindow* _handle = nullptr;
     uint32_t _width;
     uint32_t _height;
     std::string _name;
@@ -92,10 +98,32 @@ public:
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-        _pwindow = glfwCreateWindow(_width, _height, "Vulkan", monitor, nullptr);
+        _handle = glfwCreateWindow(_width, _height, "Vulkan", monitor, nullptr);
     }
 
     ~Window() {
-        if (_pwindow) glfwDestroyWindow(_pwindow);
+        if (_handle) glfwDestroyWindow(_handle);
     }
+};
+
+class PhysicalDevice {
+public:
+    static std::vector<PhysicalDevice>& getPhysicalDevices(bool force = false);
+    static PhysicalDevice& pickDevice(bool force = false);
+
+private:
+    VkPhysicalDevice _handle;
+    VkPhysicalDeviceProperties _deviceProperties;
+    VkPhysicalDeviceFeatures _deviceFeatures;
+    std::vector<VkQueueFamilyProperties> _deviceQueueFamilies;
+    PhysicalDevice(const VkPhysicalDevice& handle) {
+        _handle = handle;
+        vkGetPhysicalDeviceProperties(_handle, &_deviceProperties);
+        std::cout << _deviceProperties << '\n';
+        vkGetPhysicalDeviceFeatures(_handle, &_deviceFeatures);
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(_handle, &queueFamilyCount, nullptr);
+        _deviceQueueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(_handle, &queueFamilyCount, _deviceQueueFamilies.data());
+    };
 };

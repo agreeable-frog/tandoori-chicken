@@ -89,7 +89,7 @@ void VulkanContext::setupDebugMessenger() {
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
 
-    if (CreateDebugUtilsMessengerEXT(_instance, &createInfo, nullptr, &_debugMessenger) !=
+    if (CreateDebugUtilsMessengerEXT(_handle, &createInfo, nullptr, &_debugMessenger) !=
         VK_SUCCESS) {
         throw std::runtime_error("Failed to set up debug messenger.");
     }
@@ -126,11 +126,47 @@ VulkanContext::VulkanContext() {
         createInfo.pNext = nullptr;
     }
 
-    auto result = vkCreateInstance(&createInfo, nullptr, &_instance);
+    auto result = vkCreateInstance(&createInfo, nullptr, &_handle);
     if (result != VK_SUCCESS) {
         throw std::runtime_error("Error while creating Vulkan instance.");
     }
     std::cerr << "Vulkan instance successfully created.\n";
 
     setupDebugMessenger();
+}
+
+std::vector<PhysicalDevice>& PhysicalDevice::getPhysicalDevices(bool force /* = false */) {
+    static std::vector<PhysicalDevice> availableDevices = {};
+    if (force) availableDevices = {};
+    if (availableDevices.size() > 0) return availableDevices;
+
+    std::cout << "Fetching physical devices available : \n";
+
+    auto& instance = VulkanContext::getInstance();
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance.getHandle(), &deviceCount, nullptr);
+    if (deviceCount == 0) {
+        throw std::runtime_error("No GPU with Vulkan support.");
+    }
+    std::vector<VkPhysicalDevice> deviceHandles(deviceCount);
+    vkEnumeratePhysicalDevices(instance.getHandle(), &deviceCount, deviceHandles.data());
+
+    for (auto& deviceHandle : deviceHandles) {
+        availableDevices.push_back(PhysicalDevice(deviceHandle));
+    }
+    return availableDevices;
+}
+
+PhysicalDevice& PhysicalDevice::pickDevice(bool force /* = false*/) {
+    auto availableDevices = getPhysicalDevices();
+    for (auto& device : availableDevices) {
+        if (device._deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+            return device;
+        }
+    }
+    for (auto& device : availableDevices) {
+        if (device._deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+            return device;
+    }
+    return availableDevices[0];
 }
