@@ -26,6 +26,17 @@ inline std::ostream& operator<<(std::ostream& stream, const VkPhysicalDeviceType
 
 inline std::ostream& operator<<(std::ostream& stream, const VkPhysicalDeviceProperties& prop) {
     stream << "Device : " << prop.deviceType << " " << std::string(prop.deviceName) << ", id : " << prop.deviceID << '\n';
-    stream << "API version : " << prop.apiVersion << ", driver version : "<<prop.driverVersion;
+    stream << "API version : " << prop.apiVersion << ", driver version : " << prop.driverVersion;
+    return stream;
+}
+
+inline std::ostream& operator<<(std::ostream& stream, const VkQueueFamilyProperties& prop) {
+    stream << "Queue family :\n" << prop.queueCount << " queues\n";
+    stream << "Graphics operations : ";
+    prop.queueFlags & VK_QUEUE_GRAPHICS_BIT ? stream << "OK\n" : stream << "KO\n";
+    stream << "Compute operations : ";
+    prop.queueFlags & VK_QUEUE_COMPUTE_BIT ? stream << "OK\n" : stream << "KO\n";
+    stream << "Transfer operations : ";
+    prop.queueFlags & VK_QUEUE_TRANSFER_BIT ? stream << "OK\n" : stream << "KO\n";
     return stream;
 }

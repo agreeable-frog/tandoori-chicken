@@ -4,6 +4,6 @@ int main() {
     auto window = Window();
     VulkanContext::getInstance();
     auto physicalDevice = PhysicalDevice::pickDevice();
-    std::cout << "In main\n";
+    std::cout << "Chosen device : " << physicalDevice.getName() << '\n';
     return 0;
 }
