@@ -4,6 +4,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -36,6 +37,13 @@ public:
 
 class VulkanContext {
 public:
+#ifdef NDEBUG
+    const bool enableValidationLayers = false;
+#else
+    const bool enableValidationLayers = true;
+#endif
+    const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
+
     static VulkanContext& getInstance() {
         static VulkanContext instance;
         return instance;
@@ -47,13 +55,6 @@ public:
 
 private:
     VkInstance _handle;
-    const std::vector<const char*> _validationLayers = {"VK_LAYER_KHRONOS_validation"};
-
-#ifdef NDEBUG
-    const bool enableValidationLayers = false;
-#else
-    const bool enableValidationLayers = true;
-#endif
     VkDebugUtilsMessengerEXT _debugMessenger;
 
     bool checkValidationLayerSupport();
@@ -115,6 +116,10 @@ public:
         return _deviceProperties.deviceName;
     }
 
+    VkPhysicalDevice getHandle() const {
+        return _handle;
+    }
+
     uint32_t getBestGraphicsFamilyIndex() const {
         std::vector<int> score(_deviceQueueFamilyProperties.size());
         for (size_t i = 0; i < _deviceQueueFamilyProperties.size(); i++) {
@@ -148,18 +153,19 @@ private:
                                                  _deviceQueueFamilyProperties.data());
         int i = 0;
         for (auto& queueFamilyProperty : _deviceQueueFamilyProperties) {
-            std::cout << ++i << ". " << queueFamilyProperty;
+            std::cout << "Queue family " << ++i << "\n" << queueFamilyProperty;
         }
     };
 };
 
 class LogicalDevice {
 public:
-    LogicalDevice(const PhysicalDevice& physicalDevice) {
+    LogicalDevice(PhysicalDevice& physicalDevice) {
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = physicalDevice.getBestGraphicsFamilyIndex();
         queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &_queuePriority;
 
         VkPhysicalDeviceFeatures deviceFeatures{};
         VkDeviceCreateInfo createInfo{};
@@ -167,8 +173,26 @@ public:
         createInfo.pQueueCreateInfos = &queueCreateInfo;
         createInfo.queueCreateInfoCount = 1;
         createInfo.pEnabledFeatures = &deviceFeatures;
+
+        createInfo.enabledExtensionCount = 0;
+
+        auto& context = VulkanContext::getInstance();
+        if (context.enableValidationLayers) {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(context.validationLayers.size());
+            createInfo.ppEnabledLayerNames = context.validationLayers.data();
+        } else {
+            createInfo.enabledLayerCount = 0;
+        }
+        if (vkCreateDevice(physicalDevice.getHandle(), &createInfo, nullptr, &_handle) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create logical device!");
+        }
+    }
+    ~LogicalDevice() {
+        std::cout << "Destroyed logical device.\n";
+        vkDestroyDevice(_handle, nullptr);
     }
 
 private:
+    VkDevice _handle;
     float _queuePriority = 1.0f;
 };

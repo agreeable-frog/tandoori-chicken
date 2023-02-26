@@ -31,7 +31,7 @@ inline std::ostream& operator<<(std::ostream& stream, const VkPhysicalDeviceProp
 }
 
 inline std::ostream& operator<<(std::ostream& stream, const VkQueueFamilyProperties& prop) {
-    stream << "Queue family :\n" << prop.queueCount << " queues\n";
+    stream << prop.queueCount << " queue(s)\n";
     stream << "Graphics operations : ";
     prop.queueFlags & VK_QUEUE_GRAPHICS_BIT ? stream << "OK\n" : stream << "KO\n";
     stream << "Compute operations : ";

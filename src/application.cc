@@ -18,7 +18,7 @@ bool VulkanContext::checkValidationLayerSupport() {
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    for (const char* layerName : _validationLayers) {
+    for (const char* layerName : validationLayers) {
         bool layerFound = false;
         for (const auto& layerProperties : availableLayers) {
             if (strcmp(layerName, layerProperties.layerName) == 0) {
@@ -117,8 +117,8 @@ VulkanContext::VulkanContext() {
     createInfo.ppEnabledExtensionNames = extensions.data();
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     if (enableValidationLayers) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(_validationLayers.size());
-        createInfo.ppEnabledLayerNames = _validationLayers.data();
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
         populateDebugMessengerCreateInfo(debugCreateInfo);
         createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
     } else {
@@ -158,7 +158,7 @@ std::vector<PhysicalDevice>& PhysicalDevice::getPhysicalDevices(bool force /* = 
 }
 
 PhysicalDevice& PhysicalDevice::pickDevice(bool force /* = false*/) {
-    auto availableDevices = getPhysicalDevices();
+    auto& availableDevices = getPhysicalDevices();
     for (auto& device : availableDevices) {
         if (device._deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
             return device;
